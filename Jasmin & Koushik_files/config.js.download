@@ -207,11 +207,11 @@
 
     invocation: { symbol: 'ganesha', religion: 'hindu', script: 'devanagari', custom: '' },
 
-    brideName: 'Jasmin',
-    groomName: 'Koushik',
+    brideName: 'Koushik',
+    groomName: 'Jasmin',
     // Derived (see syncDerived) - kept flat for the platform's own EventData.
-    title: 'Jasmin & Koushik',
-    hostNames: ['Jasmin', 'Koushik'],
+    title: 'Koushik & Jasmin',
+    hostNames: ['Koushik', 'Jasmin'],
 
     // The gate's card, under the invocation.
     introNote: 'we cordially invite you to grace the auspicious occasion of the marriage of…',
@@ -225,7 +225,7 @@
     // off, so removing one is reversible.
     groomFamily: {
       enabled: true,
-      name: 'Chi. Koushik Sharma',
+      name: 'Chi. Jasmin Sharma',
       relLabel: 'Son of',
       parentA: 'Shri Ramesh Chandra Sharma',
       parentB: 'Smt. Sunita Sharma',
@@ -237,7 +237,7 @@
     },
     brideFamily: {
       enabled: true,
-      name: 'Kum. Jasmin Verma',
+      name: 'Kum. Koushik Verma',
       relLabel: 'Daughter of',
       parentA: 'Shri Rajesh Kumar Verma',
       parentB: 'Smt. Meera Verma',
