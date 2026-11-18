@@ -1,0 +1,1042 @@
+/* Royale - the editing chrome.
+
+   Everything here is scoped to the editing modes the template puts on <body>
+   (is-editing / is-previewing / is-trial, set by config.js), or to classes
+   render.js only ever draws in edit mode, so a guest's invitation carries
+   none of it. Papercut's editor.css is the model, and so is its palette: the
+   editing chrome is the SAME purple in every template.
+
+   It used to be crimson-and-gold here, on the reasoning that editing furniture
+   should sit in the template's own colours. That was the wrong instinct. The
+   chrome is not part of the invitation - it is the tooling around it - and a
+   host who edits two templates should not have to relearn which colour means
+   "you can change this". The accent now comes from _platform/toolbar.css
+   (--edit-accent: #5F0FFF) like everywhere else, and the two names below are
+   kept only because royale's own rules use them; they point at the shared
+   tokens rather than carrying colours of their own. */
+
+:root {
+  --edit-line: var(--edit-accent-faint);
+  --edit-line-bright: var(--edit-accent);
+  /* Not an accent - the cream ground the popovers are drawn on. */
+  --edit-paper: #fdf2e1;
+}
+
+/* The gate is a full-screen cover, so it cannot stay `fixed` while the host is
+   editing - it would sit over everything they came to change.
+
+   It used to be `display: none` for that reason, which solved the covering but
+   took the CARD with it: the opening invocation, the guest greeting and the
+   invitation line under them all live on that card, and render.js marks two of
+   them editable and inserts the "Change invocation" button into it. Hidden,
+   none of that could be reached - the fields were editable in principle and
+   unreachable in practice.
+
+   So the gate drops into normal flow instead (the same move papercut makes on
+   its own cover) and becomes an ordinary panel at the top of the page. Only
+   the card survives: the doors, flaps and corner artwork below are fixed
+   artwork the host cannot edit, they are sized and hinged against the viewport
+   rather than a panel, and in flow they would only be a large closed gate in
+   the way of the thing behind it. The host sees them in Preview, which is
+   where the cover is the point. */
+body.is-editing .royale-gate {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  /* The guest's gate is a whole viewport tall; as a panel it only has to hold
+     the card. */
+  padding-block: calc(24 * var(--u));
+  /* All three belong to a cover that traps the page behind it. In flow there
+     is nothing to trap, and leaving them on would eat the host's scrolling. */
+  touch-action: auto;
+  overscroll-behavior: auto;
+  cursor: default;
+  /* The doors' swing depth. With no doors here it only distorts the card. */
+  perspective: none;
+}
+
+body.is-editing .royale-gate__door,
+body.is-editing .royale-gate__flap,
+body.is-editing .royale-gate__decor {
+  display: none;
+}
+
+/* The couple's names wait at opacity 0 for the gate to open and fade them in
+   over the garden. With the gate gone there is nothing to open, so in the
+   editor they would never arrive - and they are the first thing a host wants
+   to change. Shown outright here; the fade still plays for a guest. */
+body.is-editing .royale-couple__name,
+body.is-editing .royale-couple__amp {
+  opacity: 1;
+}
+
+/* ---------- Editable fields ---------- */
+[data-edit] {
+  outline: 1.5px dashed var(--edit-line);
+  outline-offset: 3px;
+  border-radius: 2px;
+  cursor: text;
+  transition: outline-color 0.2s ease, background-color 0.2s ease;
+}
+
+[data-edit]:hover {
+  outline-color: var(--edit-line-bright);
+}
+
+[data-edit]:focus {
+  outline: 2px solid var(--edit-line-bright);
+  background-color: var(--edit-accent-tint);
+}
+
+/* An empty field still has to be findable and clickable. */
+[data-edit]:empty::before {
+  content: attr(data-edit-placeholder);
+  opacity: 0.55;
+}
+
+/* Locked in the trial: it renders, but it is not editable (render.js grants
+   editability, this only says so). */
+[data-locked] {
+  position: relative;
+  outline: 1.5px dotted rgba(120, 120, 130, 0.35);
+  outline-offset: 3px;
+  cursor: not-allowed;
+}
+
+[data-locked]:hover::after {
+  content: '🔒 Buy to edit';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -6px);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #4a021e;
+  color: var(--edit-paper);
+  font: 700 11px/1 var(--font-sans);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Structural controls (adding content, moving it about) don't belong in a
+   trial - hidden outright rather than disabled, so the trial reads as a clean
+   invitation rather than a wall of dead buttons. */
+body.is-trial .ry-chip,
+body.is-trial .ry-slot,
+body.is-trial .ry-inv-btn,
+body.is-trial .ry-date-edit,
+body.is-trial .ry-frame-controls,
+body.is-trial .ry-frame-add,
+body.is-trial .ry-cere-toggle,
+body.is-trial .ry-line-add,
+body.is-trial .ry-line-x {
+  display: none;
+}
+
+/* ---------- Chips and slots ---------- */
+/* "x Remove" on a card, and the strip that stands in its place. */
+.ry-chip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35em 0.9em;
+  background: rgb(74 2 30 / 0.88);
+  color: var(--edit-paper);
+  font: 500 13px/1 var(--font-sans);
+  cursor: pointer;
+}
+
+.ry-chip:hover,
+.ry-chip:focus-visible {
+  background: #4a021e;
+}
+
+.ry-slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: clamp(16px, 3vw, 28px) auto;
+  padding: clamp(14px, 2.5vw, 22px);
+  max-width: min(92vw, 520px);
+  border: 1px dashed var(--edit-accent-soft);
+  border-radius: 16px;
+  text-align: center;
+  font: 500 15px/1.3 var(--font-sans);
+  color: var(--edit-accent);
+}
+
+.ry-slot__btn,
+.ry-line-add,
+.ry-inv-btn {
+  border: 1.5px solid var(--edit-accent);
+  border-radius: 999px;
+  padding: 0.45em 1.2em;
+  background: #fff;
+  color: var(--edit-accent);
+  font: 500 13px/1 var(--font-sans);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ry-slot__btn:hover,
+.ry-line-add:hover,
+.ry-inv-btn:hover {
+  background: var(--edit-accent);
+  color: #fff;
+}
+
+/* The invocation picker sits on the card it changes. */
+.ry-inv-btn {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+}
+
+/* ---------- The gallery's frames ---------- */
+.ry-frame-controls {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+}
+
+.ry-frame-controls button {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--edit-accent);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--edit-accent);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ry-frame-controls button:hover {
+  background: var(--edit-accent);
+  color: #fff;
+}
+
+/* The add-a-frame tile hangs in the row like a frame, so the row reads as one
+   line of things rather than a line plus a control. */
+.ry-frame-add__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 300px;
+  padding: 26px 20px;
+  border: 3px dashed var(--edit-accent-soft);
+  border-radius: 14px;
+  background: rgb(253 242 225 / 0.9);
+  text-align: center;
+  font: 500 14px/1.3 var(--font-sans);
+  color: var(--edit-accent);
+}
+
+.ry-frame-add__box p {
+  margin: 0;
+}
+
+.ry-frame-add__box button {
+  border: 1.5px solid var(--edit-accent);
+  border-radius: 999px;
+  padding: 7px 16px;
+  background: #fff;
+  color: var(--edit-accent);
+  font: 500 13px/1 var(--font-sans);
+  cursor: pointer;
+}
+
+.ry-frame-add__box button:hover {
+  background: var(--edit-accent);
+  color: #fff;
+}
+
+/* ---------- The ceremony cards ---------- */
+/* A card that is switched off still shows to the host, dimmed, so it can be
+   switched back on; guests never get it at all (render.js drops it). */
+.ryc-card[data-off] {
+  opacity: 0.45;
+  filter: grayscale(0.4);
+}
+
+/* The switch on a dimmed card keeps its colour - it is the control that
+   switches the card back on. */
+.ryc-card[data-off] .ry-cere-toggle {
+  opacity: 1;
+  filter: none;
+}
+
+/* The editing controls on the card sit where the writing they change prints,
+   and take no more room than it does: the picture, the name and the details
+   keep the size and place they have for a guest, so what the host edits is
+   what the guest will see. Everything a guest never reads on the card goes on
+   the panel under it (.ry-cere-below). */
+
+/* The switch rides just above each card, so the heading over the first row
+   needs more clearance than it does for a guest. */
+body.is-editing .ryc-title {
+  margin-bottom: clamp(52px, 8vw, 76px);
+}
+
+/* The switch rides on the card's shoulder, clear of the writing. */
+.ry-cere-toggle {
+  position: absolute;
+  z-index: 5;
+  top: -3.5cqw;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1.5cqw;
+  white-space: nowrap;
+  padding: 1cqw 3cqw;
+  border-radius: 999px;
+  background: rgb(253 242 225 / 0.95);
+  box-shadow: 0 0.4cqw 1.2cqw rgb(40 0 15 / 0.25);
+  font: 600 3.2cqw/1 var(--font-sans);
+  color: var(--edit-accent);
+  cursor: pointer;
+}
+
+/* ---------- Ceremonies the host adds ---------- */
+/* Delete, in the place the built-in cards have their switch. */
+.ry-cere-remove {
+  border: 0;
+}
+
+/* The photo area is the control while editing, as a gallery frame's is: tap
+   to choose or swap the photo, drag to move it, wheel or pinch to zoom
+   (editor.js). The one part of the photo's box that takes a pointer - the
+   rest lets taps through to the writing under it. */
+body.is-editing .ryc-card__photo-box--adjust {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+body.is-editing .ryc-card__photo-box--adjust:active {
+  cursor: grabbing;
+}
+
+/* Until there is a photo: the area filled with a wash of the editor's
+   colour, asking for one - the shape the photo will take, without a line
+   drawn round it. Pushed down past the narrow point so the words sit where
+   the arch has room for them. */
+.ryc-card__photo-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 0 12% 14%;
+  background: rgb(95 15 255 / 0.1); /* --edit-accent, washed */
+  font: 600 3.4cqw/1.3 var(--font-sans);
+  color: var(--edit-accent);
+  text-align: center;
+  cursor: pointer;
+}
+
+/* The add tile takes a card's place in the grid, centred on it. */
+.ryc-add {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 100%;
+}
+
+body.is-trial .ryc-add {
+  display: none;
+}
+
+/* The date and its optional time, in the row that prints them for a guest -
+   native controls, so each platform brings its own picker and keyboard. */
+.ry-cere-field {
+  display: inline-grid;
+  min-width: 0;
+}
+
+/* 5.8cqw tall, padding and border included: the height of the date as it
+   prints for a guest, so the row - and everything above it on the card -
+   sits exactly where it does on the guest's copy. */
+.ry-cere-field input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 5.8cqw;
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 1.5cqw;
+  padding: 0 1.4cqw;
+  background: rgb(255 255 255 / 0.85);
+  font: 500 3.4cqw/1.2 var(--font-sans);
+  color: var(--royale-ceremony-ink);
+}
+
+/* An hour is not always fixed when the rest is, so the time may be left
+   empty - the card then shows the date alone. */
+.ry-cere-field--time input {
+  font-size: 3cqw;
+  opacity: 0.85;
+}
+
+.ry-cere-field--time input:placeholder-shown,
+.ry-cere-field--time input[value=''] {
+  opacity: 0.6;
+}
+
+/* The time is optional, so it carries the controls that make that true: a
+   &times; to take a set time off, and a button to put one back. The base field
+   is a one-column inline-grid, so this lays its two children in a row. */
+.ry-cere-field--time {
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 0.8cqw;
+}
+
+.ry-cere-time-x,
+.ry-cere-time-add {
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 1.5cqw;
+  background: rgb(255 255 255 / 0.85);
+  color: var(--royale-ceremony-ink);
+  font: 500 3cqw/1 var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.ry-cere-time-x {
+  height: 5.8cqw;
+  padding: 0 1.5cqw;
+}
+
+/* Quieter than a field that holds something: this is an invitation to add,
+   not a value. */
+.ry-cere-time-add {
+  height: 5.8cqw;
+  padding: 0 1.8cqw;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+.ry-cere-time-x:hover,
+.ry-cere-time-add:hover {
+  border-color: var(--edit-accent);
+  opacity: 1;
+}
+
+/* The frame is the photo picker while editing, so the <button> has to stop
+   looking like one: no chrome of its own, and the same grid centring the div
+   it replaces uses, so .gframe__placeholder still sits in the middle. Only the
+   cursor and the hover/focus lift say it is pressable. */
+.gframe__photo--pick {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gframe__photo--pick:hover,
+.gframe__photo--pick:focus-visible {
+  filter: brightness(1.04);
+  box-shadow:
+    0 0 0 3px #fbf1e3,
+    0 0 0 4px var(--edit-accent),
+    inset 0 2px 8px rgb(40 0 15 / 0.35);
+}
+
+/* ---------- Under each card, while editing ---------- */
+/* What the host sets that a guest never reads on the card - the map link,
+   an added ceremony's photo controls and why it is still hidden - on a panel
+   under the card rather than in it, so the card itself holds exactly what it
+   holds for a guest, in the same places (render.js ceremonyBelowHtml).
+
+   Card and panel are one grid item (.ryc-edit), laid out the way the grid
+   lays out a card on its own: one centred column, so the card's own sizing
+   and its shadow-cancelling margins (styles.css) work out exactly as they do
+   there. Outside the card, so sized in px rather than the card's cqw. */
+.ryc-edit {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  width: 100%;
+}
+
+.ry-cere-below {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  width: min(88%, 420px);
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px dashed var(--edit-accent-soft);
+  border-radius: 14px;
+  background: rgb(253 242 225 / 0.92);
+  font: 500 14px/1.3 var(--font-sans);
+  color: var(--royale-ceremony-ink);
+}
+
+body.is-trial .ry-cere-below {
+  display: none;
+}
+
+/* Why the host can see a card their guests can't. */
+.ry-cere-hint {
+  margin: 0;
+  font: italic 500 13px/1.3 var(--font-sans);
+  color: var(--edit-accent);
+}
+
+/* An added ceremony's photo: zoom out, zoom in, change it. */
+.ry-cere-photo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ry-cere-photo > span {
+  margin-right: auto;
+  font: 600 11px/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ry-cere-photo button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.85);
+  font: 600 14px/1 var(--font-sans);
+  color: var(--royale-ceremony-ink);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ry-cere-photo button:hover {
+  border-color: var(--edit-accent);
+  color: var(--edit-accent);
+}
+
+/* The exact place on the map: the pin on the card searches for the venue on
+   its own when this is empty. */
+.ry-cere-map {
+  display: block;
+  text-align: left;
+}
+
+.ry-cere-map > span:not(.bdate) {
+  display: block;
+  margin-bottom: 5px;
+  font: 600 11px/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ry-cere-map input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: rgb(255 255 255 / 0.85);
+  font: 500 14px/1.2 var(--font-sans);
+  color: var(--royale-ceremony-ink);
+}
+
+/* ---------- The wedding date ---------- */
+/* Under the plaques, in plain sight: a host should see that the date is
+   theirs to set without hunting for a control. The calendar and the three
+   typed fields both drive it (see render.js and editor.js). */
+.ry-date-edit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  /* Of the SECTION, not the viewport: the date section pads its sides, and a
+     vw width takes no notice of that - it hung 22px off the screen's edge on
+     a phone and dragged the page's width with it. border-box so this panel's
+     own padding stays inside that width rather than adding to it. */
+  box-sizing: border-box;
+  width: min(100%, 420px);
+  margin: clamp(16px, 3vw, 28px) auto 0;
+  padding: clamp(14px, 2.5vw, 20px);
+  border: 1px dashed var(--edit-line);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.55);
+  text-align: center;
+  font: 500 13px/1.4 var(--font-sans);
+  color: var(--royale-ceremony-ink);
+}
+
+.ry-date-edit__field {
+  display: block;
+  width: 100%;
+}
+
+.ry-date-edit__field > span:not(.bdate) {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ry-date-edit .bdate {
+  width: 100%;
+}
+
+.ry-date-edit__manual {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.ry-date-edit__manual > label > span {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ry-date-edit input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #fff;
+  font: 500 14px/1.2 var(--font-sans);
+  color: var(--royale-ceremony-ink);
+}
+
+.ry-date-edit__hint {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* ---------- The compliments' lines ---------- */
+.ry-line-x {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(253 242 225 / 0.2);
+  color: var(--royale-gold);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ry-line-add {
+  margin-top: 10px;
+}
+
+/* ---------- Toasts (kit.toast(), e.g. a failed photo upload) ---------- */
+.edit-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  z-index: 999;
+  transform: translateX(-50%) translateY(12px);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #4a021e;
+  color: var(--edit-paper);
+  font: 500 14px/1.2 var(--font-sans);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.edit-toast.is-on {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---------- Popovers (kit.openPop()) ---------- */
+.edit-pop {
+  position: absolute;
+  z-index: 1000;
+  width: min(92vw, 340px);
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--edit-paper);
+  box-shadow: 0 18px 40px rgb(40 0 15 / 0.35);
+  font: 500 14px/1.4 var(--font-sans);
+  color: var(--royale-ceremony-ink);
+}
+
+.edit-pop h4 {
+  margin: 0 0 10px;
+  font: 600 15px/1.2 var(--font-display);
+  color: var(--edit-accent);
+}
+
+.edit-pop__note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  opacity: 0.8;
+}
+
+.edit-pop__field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.edit-pop__field > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.edit-pop input[type='date'],
+.edit-pop input[type='text'],
+.edit-pop input[type='url'] {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: 500 14px/1.2 var(--font-sans);
+}
+
+/* The date popover: a calendar, and the three typed fields beside it for
+   the phones whose date field cannot be typed into. */
+.date-input {
+  width: 100%;
+}
+
+.date-input__hint {
+  margin: 10px 0 8px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.date-input__manual {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.date-input__manual input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font: 500 14px/1.2 var(--font-sans);
+}
+
+.edit-pop__confirm {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.edit-pop__btn {
+  flex: 1;
+  border: 1.5px solid var(--edit-accent);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fff;
+  color: var(--edit-accent);
+  font: 500 13px/1 var(--font-sans);
+  cursor: pointer;
+}
+
+.edit-pop__btn--danger {
+  border-color: #a01028;
+  background: #a01028;
+  color: #fff;
+}
+
+/* ---------- The invocation picker ---------- */
+/* Custom (non-native) dropdowns, so each native script can be shown in its
+   own face and the list can be grouped by tradition. */
+.inv-dd {
+  position: relative;
+}
+
+.inv-dd__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid rgb(64 8 11 / 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  font: 500 14px/1.3 var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.inv-dd__chev {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+}
+
+.inv-dd__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inv-dd__value--sym,
+.inv-dd__opt--sym {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inv-dd__menu {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 260px;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 30px rgb(40 0 15 / 0.3);
+}
+
+.inv-dd.is-open .inv-dd__menu {
+  display: block;
+}
+
+.inv-dd__group {
+  padding: 8px 10px 4px;
+  font: 600 11px/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.inv-dd__opt {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 8px 12px;
+  background: none;
+  font: 500 14px/1.3 var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.inv-dd__opt:hover {
+  background: var(--edit-accent-tint);
+}
+
+.inv-dd__opt.is-current {
+  background: var(--edit-accent-tint);
+  color: var(--edit-accent);
+  font-weight: 600;
+}
+
+.inv-dd__sym {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.inv-dd__sym--none {
+  display: grid;
+  place-items: center;
+  opacity: 0.5;
+}
+
+.inv-custom {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+}
+
+.inv-custom__count {
+  margin-top: 4px;
+  font-size: 11px;
+  text-align: right;
+  opacity: 0.6;
+}
+
+/* The line as the card will show it. */
+.edit-pop__inv-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--edit-accent-tint);
+  text-align: center;
+}
+
+.inv-preview__sym {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.inv-preview__native {
+  font-size: 17px;
+}
+
+.inv-preview__en {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* The tap cue, while editing. The gate does not open here - it is laid out as
+   a flat panel - so the cue is naming something the host cannot do. It stays
+   on screen because it is part of the cover they are designing and they should
+   see it, but dimmed and still, the same way papercut treats its own cover
+   button in edit mode. */
+body.is-editing .royale-card__cue {
+  opacity: 0.55;
+  animation: none;
+}
+
+/* ---------- The gallery, while editing ----------------------------------
+   The frames stay on their rope. They are hung furniture - a rail, a hook and
+   a cord each, at a stagger set by the frame's own --hang - and laying them
+   out as a plain wrapped grid to make them all fit took the gallery apart to
+   solve a problem that is really about reach, not layout.
+
+   So the row stays a row, and the scrollbar comes back instead. For a guest
+   .royale-gallery__scroll hides it on purpose (cursor:grab, and you discover
+   the rest by dragging), which is fine for reading and wrong for working: a
+   host has to know there are frames off to the right and that the Add tile is
+   the last of them. Showing the bar says both without moving anything.
+
+   The starting row is short by design - three frames and the Add tile, see
+   GALLERY_STARTERS in config.js - so on anything wider than a phone most of it
+   is on screen anyway. */
+body.is-editing .royale-gallery__scroll {
+  cursor: default;
+  /* Size to the frames instead of to a fixed height. The guest's gallery is a
+     760px window the row is read through; while editing it has to hold the
+     whole frame plus the control strip that hangs 40px above it, and on a
+     phone it did not - the frame is 824px there and --rail-y drops to 64, so
+     overflow-y:hidden was cutting the strip off the top and the frame off the
+     bottom. The buttons were not hidden by a rule; they were simply outside
+     the box.
+
+     The padding goes on the SCROLL BOX, not the track: the rail is positioned
+     absolutely inside the track, so padding there would move the frames down
+     and leave the rail behind, and the frames would hang off nothing. */
+  height: auto;
+  padding-top: 52px;
+  /* Both halves: Firefox reads scrollbar-width, WebKit needs the pseudo-element
+     un-hidden again (the base rule sets display:none on it). */
+  scrollbar-width: thin;
+}
+
+body.is-editing .royale-gallery__scroll::-webkit-scrollbar {
+  display: block;
+  height: 10px;
+}
+
+body.is-editing .royale-gallery__scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--edit-accent-soft);
+}
+
+/* The row is as tall as its tallest frame, rather than a fixed window. */
+body.is-editing .royale-gallery__track {
+  height: auto;
+}
+
+/* ---------- Reframing a gallery photo ------------------------------------
+   A filled frame is a drag surface rather than a button: dragging moves the
+   picture inside its frame, and the bar below zooms it or swaps it out. An
+   empty frame stays a single big "add a photo" target - there is nothing to
+   reframe yet, and one obvious action beats two. */
+body.is-editing .gframe__photo--adjust {
+  cursor: grab;
+  touch-action: none;
+}
+
+body.is-editing .gframe__photo--adjust:active {
+  cursor: grabbing;
+}
+
+
+
+/* ---------- The media row's Instagram button ---------- */
+/* Only Instagram is removable; the locations and calendar icons are derived
+   from the ceremonies, so there is nothing of their own to take away. The wrap
+   is just the chip's positioning box - it adds no layout, so the row spaces
+   the same with or without it (render.js renderSocial). */
+.ry-social-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The page's own ground here, not a cream card, so the chip shrinks to a bare
+   x pinned to the icon's corner rather than the wider "x Remove" pill the
+   cards wear - at 90px the icon has no room for a labelled one. */
+.ry-chip--social {
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgb(30 2 14 / 0.35);
+}
+
+/* The grid above beats the user-agent's [hidden], so the chip would hang on
+   beside the "+ Add Instagram" pill that replaces the icon it removes. */
+.ry-chip--social[hidden] {
+  display: none;
+}
+
+/* Stands in for the icon once it is off, in exactly the space the icon had:
+   90px, the icon's own width. Left to size itself it came out about 130px,
+   which was enough to push the calendar icon onto a second line on a phone -
+   so the label wraps inside the pill instead of the row wrapping around it. */
+.ry-social-restore {
+  width: 90px;
+  padding: 0.5em 0.6em;
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: normal;
+}
