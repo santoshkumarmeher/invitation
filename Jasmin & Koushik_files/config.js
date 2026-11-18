@@ -30,14 +30,14 @@
   // identical choice in every template. Add a tradition, script or symbol in
   // one and add it to the others.
   const SYMBOLS = [
-    { id: 'ganesha', label: 'Ganesha', src: '../symbols/_ganesha.svg' },
-    { id: 'buddha', label: 'Buddha', src: '../symbols/_buddha.svg' },
-    { id: 'sindhi', label: 'Jhulelal', src: '../symbols/_sindhi.svg' },
-    { id: 'sikh', label: 'Ik Onkar', src: '../symbols/_sikh.svg' },
-    { id: 'jain', label: 'Ahimsa symbol', src: '../symbols/_jain.svg' },
-    { id: 'buddhist', label: 'Dharma wheel', src: '../symbols/_buddhist.svg' },
-    { id: 'parsi', label: 'Faravahar', src: '../symbols/_parsi.svg' },
-    { id: 'christian', label: 'Cross', src: '../symbols/_christian.svg' },
+    { id: 'ganesha', label: 'Ganesha', src: './symbols/_ganesha.svg' },
+    { id: 'buddha', label: 'Buddha', src: './symbols/_buddha.svg' },
+    { id: 'sindhi', label: 'Jhulelal', src: './symbols/_sindhi.svg' },
+    { id: 'sikh', label: 'Ik Onkar', src: './symbols/_sikh.svg' },
+    { id: 'jain', label: 'Ahimsa symbol', src: './symbols/_jain.svg' },
+    { id: 'buddhist', label: 'Dharma wheel', src: './symbols/_buddhist.svg' },
+    { id: 'parsi', label: 'Faravahar', src: './symbols/_parsi.svg' },
+    { id: 'christian', label: 'Cross', src: './symbols/_christian.svg' },
     { id: 'none', label: 'None', src: '' },
   ];
 
@@ -207,11 +207,11 @@
 
     invocation: { symbol: 'ganesha', religion: 'hindu', script: 'devanagari', custom: '' },
 
-    brideName: 'Ankita',
-    groomName: 'Kaushik',
+    brideName: 'Jasmin',
+    groomName: 'Koushik',
     // Derived (see syncDerived) - kept flat for the platform's own EventData.
-    title: 'Ankita & Kaushik',
-    hostNames: ['Ankita', 'Kaushik'],
+    title: 'Jasmin & Koushik',
+    hostNames: ['Jasmin', 'Koushik'],
 
     // The gate's card, under the invocation.
     introNote: 'we cordially invite you to grace the auspicious occasion of the marriage of…',
@@ -225,7 +225,7 @@
     // off, so removing one is reversible.
     groomFamily: {
       enabled: true,
-      name: 'Chi. Kaushik Sharma',
+      name: 'Chi. Koushik Sharma',
       relLabel: 'Son of',
       parentA: 'Shri Ramesh Chandra Sharma',
       parentB: 'Smt. Sunita Sharma',
@@ -237,7 +237,7 @@
     },
     brideFamily: {
       enabled: true,
-      name: 'Kum. Ankita Verma',
+      name: 'Kum. Jasmin Verma',
       relLabel: 'Daughter of',
       parentA: 'Shri Rajesh Kumar Verma',
       parentB: 'Smt. Meera Verma',
